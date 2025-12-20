@@ -17,6 +17,10 @@ def monte_carlo_xray_simulation():
     # Scattering angles (random angles between 0 and 180 degrees)
     scatter_angles = np.random.uniform(SCATTER_ANGLE_RANGE[0], SCATTER_ANGLE_RANGE[1], NUM_PHOTONS)
 
+    # Simulate the photon absorption depth (distance before absorption)
+    # Using an exponential distribution with a mean free path of 1 unit (you can adjust this value)
+    absorption_depths = np.random.exponential(scale=1, size=NUM_PHOTONS)
+
     # Absorption (random decision for each photon)
     absorbed_photons = np.random.rand(NUM_PHOTONS) < ABSORPTION_PROBABILITY  # 5% absorption
 
