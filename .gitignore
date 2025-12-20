@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Virtualenv
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# Outputs (generated artifacts)
+outputs/
+experiments/**/results.csv
+experiments/**/stability_map.png
+experiments/**/critical_cables_report.csv
+
