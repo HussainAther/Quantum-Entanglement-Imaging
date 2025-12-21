@@ -23,7 +23,7 @@ from typing import List, Tuple
 
 import numpy as np
 
-from src.tensegrity.energy import SpringMember, stability_index_energy_hessian
+from tensegrity.energy import SpringMember, stability_index_energy_hessian
 
 
 @dataclass
@@ -140,7 +140,7 @@ def run_scan(
 
 
 def main() -> None:
-    out_csv = Path("experiments/stability_map/results.csv")
+    out_csv = Path("outputs/stability_map_results.csv")
     run_scan(out_csv=out_csv)
     print(f"Wrote: {out_csv}")
 
