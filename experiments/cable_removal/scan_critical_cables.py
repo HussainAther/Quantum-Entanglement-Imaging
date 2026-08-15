@@ -22,8 +22,8 @@ from typing import List, Tuple
 
 import numpy as np
 
-from src.tensegrity.rigidity import Member, count_mechanisms
-from src.tensegrity.energy import SpringMember, stability_index_energy_hessian
+from tensegrity.rigidity import Member, count_mechanisms
+from tensegrity.energy import SpringMember, stability_index_energy_hessian
 
 
 @dataclass(frozen=True)
@@ -122,7 +122,7 @@ def write_csv(rows: List[dict], out_path: Path) -> None:
 def main() -> None:
     fr = example_framework()
     rows = scan(fr)
-    out_csv = Path("experiments/cable_removal/critical_cables_report.csv")
+    out_csv = Path("outputs/critical_cables_report.csv")
     write_csv(rows, out_csv)
     print(f"Wrote: {out_csv}")
 

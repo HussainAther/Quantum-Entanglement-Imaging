@@ -9,7 +9,7 @@ Run:
 
 import numpy as np
 
-from src.tensegrity.energy import SpringMember, stability_index_energy_hessian
+from tensegrity.energy import SpringMember, stability_index_energy_hessian
 
 
 def make_members(nodes: np.ndarray):

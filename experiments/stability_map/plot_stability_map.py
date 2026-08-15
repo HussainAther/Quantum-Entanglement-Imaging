@@ -33,7 +33,7 @@ def read_results(csv_path: Path) -> Dict[Tuple[int, int], List[float]]:
 
 
 def main() -> None:
-    csv_path = Path("experiments/stability_map/results.csv")
+    csv_path = Path("outputs/stability_map_results.csv")
     if not csv_path.exists():
         raise FileNotFoundError("Run scan_bc_grid.py first to generate results.csv")
 
@@ -63,7 +63,7 @@ def main() -> None:
     plt.ylabel("C = number of cables")
     plt.title("Toy Tensegrity Stability Map (Energy-Hessian metric)")
 
-    out_png = Path("experiments/stability_map/stability_map.png")
+    out_png = Path("outputs/stability_map.png")
     plt.tight_layout()
     plt.savefig(out_png, dpi=200)
     print(f"Wrote: {out_png}")

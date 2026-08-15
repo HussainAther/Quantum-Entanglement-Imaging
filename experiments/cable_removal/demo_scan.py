@@ -12,7 +12,7 @@ Run:
 
 import numpy as np
 
-from src.tensegrity.rigidity import Member, remove_one_cable_scan
+from tensegrity.rigidity import Member, remove_one_cable_scan
 
 
 def main() -> None:
