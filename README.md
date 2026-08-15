@@ -21,6 +21,21 @@ For running the **Monte Carlo simulations**:
 - Navigate to `/simulations`.
 - Run the `simulation_script.py` using Python.
 
+## Running experiments (CLI)
+
+Install:
+```bash
+pip install -e .
+````
+
+Run:
+
+```bash
+python scripts/run_experiment.py cable-scan
+python scripts/run_experiment.py stability-map
+python scripts/run_experiment.py stability-plot
+```
+
 ## Contributing
 Feel free to fork the repository and submit pull requests for new features or improvements!
 
