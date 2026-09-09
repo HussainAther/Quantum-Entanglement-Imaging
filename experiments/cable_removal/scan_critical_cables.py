@@ -95,9 +95,11 @@ def scan(fr: Framework, tol: float = 1e-9) -> List[dict]:
                 "mechanisms_before": mechs_before,
                 "mechanisms_after": mechs_after,
                 "mechanisms_delta": mechs_after - mechs_before,
-                "stability_min_eig_before": stab_before,
-                "stability_min_eig_after": stab_after,
-                "stability_delta": stab_after - stab_before,
+                "stability_min_eig_before": stab_before.lambda_min,
+                "stability_class_before": stab_before.classification,
+                "stability_min_eig_after": stab_after.lambda_min,
+                "stability_class_after": stab_after.classification,
+                "stability_delta": stab_after.lambda_min - stab_before.lambda_min,
             }
         )
 
@@ -109,7 +111,8 @@ def write_csv(rows: List[dict], out_path: Path) -> None:
     fieldnames = list(rows[0].keys()) if rows else [
         "removed_index","member_i","member_j",
         "mechanisms_before","mechanisms_after","mechanisms_delta",
-        "stability_min_eig_before","stability_min_eig_after","stability_delta"
+        "stability_min_eig_before","stability_class_before",
+        "stability_min_eig_after","stability_class_after","stability_delta"
     ]
 
     with out_path.open("w", newline="") as f:

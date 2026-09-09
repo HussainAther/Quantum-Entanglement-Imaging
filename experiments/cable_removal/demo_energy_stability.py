@@ -45,14 +45,20 @@ def main() -> None:
     members = make_members(nodes)
 
     base = stability_index_energy_hessian(nodes, members, eps=1e-6)
-    print(f"Base stability index (min eig): {base:.3e}")
+    print(
+        f"Base stability index (min eig): {base.lambda_min:.3e} "
+        f"[{base.classification}]"
+    )
 
     for idx in range(len(members)):
         reduced = members[:idx] + members[idx + 1 :]
-        s = stability_index_energy_hessian(nodes, reduced, eps=1e-6)
-        delta = s - base
+        result = stability_index_energy_hessian(nodes, reduced, eps=1e-6)
+        delta = result.lambda_min - base.lambda_min
         flag = "  <-- stability worsened" if delta < 0 else ""
-        print(f"remove member {idx}: min eig {s:.3e} (delta {delta:.3e}){flag}")
+        print(
+            f"remove member {idx}: min eig {result.lambda_min:.3e} "
+            f"[{result.classification}] (delta {delta:.3e}){flag}"
+        )
 
 
 if __name__ == "__main__":

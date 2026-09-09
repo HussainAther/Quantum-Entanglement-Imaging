@@ -32,6 +32,7 @@ class TrialResult:
     C: int
     trial: int
     stability_min_eig: float
+    stability_class: str
 
 
 def random_nodes(n: int, seed: int) -> np.ndarray:
@@ -121,20 +122,31 @@ def run_scan(
                 members = build_random_members(nodes, B=B, C=C, seed=seed)
 
                 try:
-                    s = stability_index_energy_hessian(nodes, members, eps=1e-6)
+                    stability = stability_index_energy_hessian(nodes, members, eps=1e-6)
+                    s = stability.lambda_min
+                    stability_class = stability.classification
                 except np.linalg.LinAlgError:
-                    # Numerical failure; mark as NaN
+                    # Numerical failure; mark as NaN/unknown.
                     s = float("nan")
+                    stability_class = "unknown"
 
-                results.append(TrialResult(B=B, C=C, trial=t, stability_min_eig=s))
+                results.append(
+                    TrialResult(
+                        B=B,
+                        C=C,
+                        trial=t,
+                        stability_min_eig=s,
+                        stability_class=stability_class,
+                    )
+                )
 
     # Write CSV
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     with out_csv.open("w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["B", "C", "trial", "stability_min_eig"])
+        w.writerow(["B", "C", "trial", "stability_min_eig", "stability_class"])
         for r in results:
-            w.writerow([r.B, r.C, r.trial, r.stability_min_eig])
+            w.writerow([r.B, r.C, r.trial, r.stability_min_eig, r.stability_class])
 
     return results
 
