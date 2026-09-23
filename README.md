@@ -133,3 +133,28 @@ The older quantum, entangled-photon, RBYRCT, and image-reconstruction scripts ar
 3. Validate against additional canonical tensegrity structures and published benchmark values.
 4. Build robustness metrics only after relaxed post-failure states are available.
 5. Keep atomic/quantum applications as explicitly testable downstream hypotheses.
+
+## Relaxed cable-failure benchmark
+
+The repository now includes an equilibrium-relaxation layer for post-failure
+analysis:
+
+- `src/tensegrity/relaxation.py`
+- `tests/test_relaxation.py`
+- `experiments/prism_relaxed_ablation.py`
+- `outputs/prism_relaxed_ablation.csv`
+
+After a cable is removed from the equilibrated 3-strut prism, the original
+geometry is generally no longer in force balance.  The relaxation routine uses
+the analytical spring-energy gradient with Armijo backtracking, and removes
+arbitrary rigid translation/rotation drift by Kabsch-aligning each accepted
+iterate to the reference frame.  Stability is recomputed only after the force
+residual has met the requested tolerance.
+
+In the current bilateral-spring model, every single-cable ablation tested here
+relaxes to a nearby equilibrium with a positive non-rigid Hessian.  The unique
+self-stress state is lost after any one cable removal, while the relaxed
+framework retains one first-order mechanism.  This result should not yet be
+interpreted as real cable-failure behavior because cables and struts are still
+bilateral springs.  Tension-only cables and compression-only struts are the
+next major mechanics upgrade.
