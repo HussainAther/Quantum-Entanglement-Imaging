@@ -7,6 +7,10 @@ from tensegrity.rigidity import (
 )
 
 
+from tensegrity.energy import equilibrium_residual_norm
+from tensegrity.examples import equilibrated_mirrored_t4
+from tensegrity.examples import t4_with_one_supported_t3
+
 def test_mirrored_t4_proxy_has_expected_shapes():
     nodes, members = mirrored_t4_prism()
 
@@ -64,3 +68,32 @@ def test_mirrored_t4_analysis_is_numerically_consistent():
     )
 
     assert result.mechanisms >= 0
+
+
+
+def test_equilibrated_mirrored_t4_is_in_force_balance():
+    nodes, _, springs = equilibrated_mirrored_t4(
+        prestress_scale=0.20,
+        stiffness=1.0,
+    )
+
+    residual = equilibrium_residual_norm(
+        nodes,
+        springs,
+    )
+
+    assert residual < 1e-10
+
+
+
+def test_t4_with_one_supported_t3_shapes():
+    nodes, members = (
+        t4_with_one_supported_t3()
+    )
+
+    assert nodes.shape == (
+        12,
+        3,
+    )
+
+    assert len(members) == 30

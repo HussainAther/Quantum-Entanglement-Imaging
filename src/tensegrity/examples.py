@@ -494,3 +494,384 @@ def mirrored_t4_prism(
     )
 
     return nodes, members
+
+def equilibrated_mirrored_t4(
+    radius: float = 1.0,
+    half_height: float = 0.75,
+    twist: float = np.pi / 6.0,
+    prestress_scale: float = 0.20,
+    stiffness: float = 1.0,
+) -> Tuple[
+    np.ndarray,
+    List[Member],
+    List[SpringMember],
+]:
+    """Return an equilibrated mirrored T4 proxy.
+
+    A sign-compatible state of self-stress is selected from the 2D
+    self-stress space and normalized so max(abs(q)) == prestress_scale.
+
+    Rest lengths are derived from
+
+        q_e = k_e (L_e - L0_e) / L_e
+
+    so that the returned geometry is in force equilibrium.
+    """
+    if stiffness <= 0.0:
+        raise ValueError(
+            "stiffness must be positive"
+        )
+
+    if prestress_scale < 0.0:
+        raise ValueError(
+            "prestress_scale must be non-negative"
+        )
+
+    if prestress_scale >= stiffness:
+        raise ValueError(
+            "prestress_scale must be smaller than stiffness"
+        )
+
+    nodes, members = mirrored_t4_prism(
+        radius=radius,
+        half_height=half_height,
+        twist=twist,
+    )
+
+    Q = self_stress_basis(
+        nodes,
+        members,
+        tol=1e-9,
+    )
+
+    if Q.shape[1] != 2:
+        raise ValueError(
+            "mirrored T4 proxy is expected to have "
+            "a 2D self-stress space"
+        )
+
+    #
+    # Search the self-stress plane for the
+    # sign-compatible direction with the
+    # largest minimum sign margin.
+    #
+    theta_values = np.linspace(
+        0.0,
+        2.0 * np.pi,
+        200001,
+        endpoint=False,
+    )
+
+    best_q = None
+    best_margin = -np.inf
+
+    for theta in theta_values:
+        coefficients = np.array(
+            [
+                np.cos(theta),
+                np.sin(theta),
+            ]
+        )
+
+        q = Q @ coefficients
+
+        margins = []
+
+        for value, member in zip(
+            q,
+            members,
+        ):
+            if member.kind == "bar":
+                margins.append(
+                    -value
+                )
+            else:
+                margins.append(
+                    value
+                )
+
+        margin = float(
+            np.min(margins)
+        )
+
+        if margin > best_margin:
+            best_margin = margin
+            best_q = q.copy()
+
+    if best_q is None or best_margin <= 0.0:
+        raise ValueError(
+            "no strictly sign-compatible T4 self-stress found"
+        )
+
+    q = (
+        best_q
+        / np.max(
+            np.abs(best_q)
+        )
+    )
+
+    q *= prestress_scale
+
+    springs: List[
+        SpringMember
+    ] = []
+
+    for member, force_density in zip(
+        members,
+        q,
+    ):
+        L = float(
+            np.linalg.norm(
+                nodes[member.i]
+                - nodes[member.j]
+            )
+        )
+
+        L0 = (
+            L
+            * (
+                1.0
+                - force_density
+                / stiffness
+            )
+        )
+
+        springs.append(
+            SpringMember(
+                i=member.i,
+                j=member.j,
+                kind=member.kind,
+                k=stiffness,
+                L0=L0,
+            )
+        )
+
+    return (
+        nodes,
+        members,
+        springs,
+    )
+
+def t4_with_one_supported_t3(
+    radius: float = 1.0,
+    half_height: float = 0.75,
+    attachment_height: float = 1.5,
+) -> Tuple[
+    np.ndarray,
+    List[Member],
+]:
+    """Return a T4 proxy with one zero-twist T3 support attachment.
+
+    The T3 interface triangle is merged with the lower triangle of the T4.
+    The far triangle of the T3 acts as the post/support side.
+
+    Node layout
+    -----------
+    0,1,2   : T4 lower triangle / T3 interface triangle
+    3,4,5   : T4 middle triangle
+    6,7,8   : T4 upper triangle
+    9,10,11 : T3 support-side triangle
+    """
+    t4_nodes, t4_members = mirrored_t4_prism(
+        radius=radius,
+        half_height=half_height,
+        twist=np.pi / 6.0,
+    )
+
+    #
+    # Build support-side triangle directly below
+    # the T4 lower/interface triangle.
+    #
+    interface = t4_nodes[0:3]
+
+    support = interface.copy()
+    support[:, 2] -= attachment_height
+
+    nodes = np.vstack(
+        [
+            t4_nodes,
+            support,
+        ]
+    )
+
+    members = list(
+        t4_members
+    )
+
+    #
+    # Zero-twist T3 attachment topology.
+    #
+    # Interface triangle:
+    #     0,1,2
+    #
+    # Support triangle:
+    #     9,10,11
+    #
+    # Use the same 3-strut / 9-cable topology
+    # as the T3 proxy.
+    #
+    t3_struts = [
+        (9, 1),
+        (10, 2),
+        (11, 0),
+    ]
+
+    support_ring = [
+        (9, 10),
+        (10, 11),
+        (11, 9),
+    ]
+
+    #
+    # Interface ring already exists as the
+    # T4 lower triangle, so don't duplicate it.
+    #
+    t3_side_cables = [
+        (9, 0),
+        (10, 1),
+        (11, 2),
+    ]
+
+    for i, j in t3_struts:
+        members.append(
+            Member(
+                i,
+                j,
+                kind="bar",
+            )
+        )
+
+    for i, j in (
+        support_ring
+        + t3_side_cables
+    ):
+        members.append(
+            Member(
+                i,
+                j,
+                kind="cable",
+            )
+        )
+
+    return (
+        nodes,
+        members,
+    )
+
+def t4_with_two_supported_t3(
+    radius: float = 1.0,
+    half_height: float = 0.75,
+    attachment_height: float = 1.5,
+) -> Tuple[
+    np.ndarray,
+    List[Member],
+]:
+    """Return a T4 proxy supported by zero-twist T3 attachments below and above.
+
+    Node layout
+    -----------
+    0,1,2    : T4 lower triangle
+    3,4,5    : T4 middle triangle
+    6,7,8    : T4 upper triangle
+    9,10,11  : lower T3 support-side triangle
+    12,13,14 : upper T3 support-side triangle
+    """
+    t4_nodes, t4_members = mirrored_t4_prism(
+        radius=radius,
+        half_height=half_height,
+        twist=np.pi / 6.0,
+    )
+
+    lower_interface = t4_nodes[0:3]
+    upper_interface = t4_nodes[6:9]
+
+    lower_support = lower_interface.copy()
+    lower_support[:, 2] -= attachment_height
+
+    upper_support = upper_interface.copy()
+    upper_support[:, 2] += attachment_height
+
+    nodes = np.vstack(
+        [
+            t4_nodes,
+            lower_support,
+            upper_support,
+        ]
+    )
+
+    members = list(
+        t4_members
+    )
+
+    #
+    # Lower zero-twist T3 attachment.
+    #
+    lower_struts = [
+        (9, 1),
+        (10, 2),
+        (11, 0),
+    ]
+
+    lower_support_ring = [
+        (9, 10),
+        (10, 11),
+        (11, 9),
+    ]
+
+    lower_side_cables = [
+        (9, 0),
+        (10, 1),
+        (11, 2),
+    ]
+
+    #
+    # Upper zero-twist T3 attachment.
+    #
+    upper_struts = [
+        (12, 7),
+        (13, 8),
+        (14, 6),
+    ]
+
+    upper_support_ring = [
+        (12, 13),
+        (13, 14),
+        (14, 12),
+    ]
+
+    upper_side_cables = [
+        (12, 6),
+        (13, 7),
+        (14, 8),
+    ]
+
+    for i, j in (
+        lower_struts
+        + upper_struts
+    ):
+        members.append(
+            Member(
+                i,
+                j,
+                kind="bar",
+            )
+        )
+
+    for i, j in (
+        lower_support_ring
+        + lower_side_cables
+        + upper_support_ring
+        + upper_side_cables
+    ):
+        members.append(
+            Member(
+                i,
+                j,
+                kind="cable",
+            )
+        )
+
+    return (
+        nodes,
+        members,
+    )
