@@ -269,3 +269,253 @@ def stability_index_energy_hessian(
         classification=classification,
         eigenvalues=eigenvalues,
     )
+
+def unilateral_total_energy(
+    nodes: np.ndarray,
+    members: Iterable[SpringMember],
+) -> float:
+    """Return energy for unilateral tensegrity members.
+
+    Cable:
+        carries tension only;
+        active when L > L0.
+
+    Bar:
+        treated as a compression-only strut;
+        active when L < L0.
+
+    Existing bilateral routines remain unchanged.
+    """
+    X = _validate_nodes(nodes)
+    energy = 0.0
+
+    for member in members:
+        n = X.shape[0]
+
+        if (
+            not (
+                0 <= member.i < n
+                and 0 <= member.j < n
+            )
+            or member.i == member.j
+        ):
+            raise ValueError(
+                f"Invalid member endpoints: {member}"
+            )
+
+        if member.k < 0.0:
+            raise ValueError(
+                "spring stiffness k must be non-negative"
+            )
+
+        if member.L0 < 0.0:
+            raise ValueError(
+                "rest length L0 must be non-negative"
+            )
+
+        d = (
+            X[member.i]
+            - X[member.j]
+        )
+
+        L = float(
+            np.linalg.norm(d)
+        )
+
+        extension = (
+            L - member.L0
+        )
+
+        if member.kind == "cable":
+            active_extension = max(
+                extension,
+                0.0,
+            )
+
+        elif member.kind == "bar":
+            active_extension = min(
+                extension,
+                0.0,
+            )
+
+        else:
+            raise ValueError(
+                f"unknown member kind: {member.kind}"
+            )
+
+        energy += (
+            0.5
+            * member.k
+            * active_extension
+            * active_extension
+        )
+
+    return float(
+        energy
+    )
+
+
+def unilateral_energy_gradient(
+    nodes: np.ndarray,
+    members: Iterable[SpringMember],
+) -> np.ndarray:
+    """Return gradient of the unilateral member energy.
+
+    At exactly L == L0 the member contributes zero force.
+    """
+    X = _validate_nodes(nodes)
+
+    grad = np.zeros_like(
+        X,
+        dtype=float,
+    )
+
+    for member in members:
+        n = X.shape[0]
+
+        if (
+            not (
+                0 <= member.i < n
+                and 0 <= member.j < n
+            )
+            or member.i == member.j
+        ):
+            raise ValueError(
+                f"Invalid member endpoints: {member}"
+            )
+
+        if member.k < 0.0:
+            raise ValueError(
+                "spring stiffness k must be non-negative"
+            )
+
+        if member.L0 < 0.0:
+            raise ValueError(
+                "rest length L0 must be non-negative"
+            )
+
+        d = (
+            X[member.i]
+            - X[member.j]
+        )
+
+        L = float(
+            np.linalg.norm(d)
+        )
+
+        if L == 0.0:
+            raise ValueError(
+                "zero-length members are not supported"
+            )
+
+        extension = (
+            L - member.L0
+        )
+
+        if member.kind == "cable":
+            if extension <= 0.0:
+                continue
+
+        elif member.kind == "bar":
+            if extension >= 0.0:
+                continue
+
+        else:
+            raise ValueError(
+                f"unknown member kind: {member.kind}"
+            )
+
+        g = (
+            member.k
+            * extension
+            * (
+                d / L
+            )
+        )
+
+        grad[
+            member.i
+        ] += g
+
+        grad[
+            member.j
+        ] -= g
+
+    return grad
+
+
+def unilateral_equilibrium_residual_norm(
+    nodes: np.ndarray,
+    members: Iterable[SpringMember],
+) -> float:
+    """Return ||dE/dx|| for unilateral tensegrity members."""
+    return float(
+        np.linalg.norm(
+            unilateral_energy_gradient(
+                nodes,
+                members,
+            )
+        )
+    )
+
+
+def unilateral_active_state(
+    nodes: np.ndarray,
+    members: Iterable[SpringMember],
+    tol: float = 1e-10,
+) -> dict:
+    """Count active, slack, and threshold members."""
+
+    X = _validate_nodes(
+        nodes
+    )
+
+    result = {
+        "active_cables": 0,
+        "slack_cables": 0,
+        "active_bars": 0,
+        "slack_bars": 0,
+        "threshold": 0,
+    }
+
+    for member in members:
+        d = (
+            X[member.i]
+            - X[member.j]
+        )
+
+        L = float(
+            np.linalg.norm(d)
+        )
+
+        extension = (
+            L - member.L0
+        )
+
+        if abs(extension) <= tol:
+            result[
+                "threshold"
+            ] += 1
+            continue
+
+        if member.kind == "cable":
+            if extension > 0.0:
+                result[
+                    "active_cables"
+                ] += 1
+            else:
+                result[
+                    "slack_cables"
+                ] += 1
+
+        elif member.kind == "bar":
+            if extension < 0.0:
+                result[
+                    "active_bars"
+                ] += 1
+            else:
+                result[
+                    "slack_bars"
+                ] += 1
+
+    return result
