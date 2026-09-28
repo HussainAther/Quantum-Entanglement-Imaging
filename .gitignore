@@ -23,3 +23,5 @@ experiments/**/results.csv
 experiments/**/stability_map.png
 experiments/**/critical_cables_report.csv
 
+# Meetings notes
+docs/*.txt
