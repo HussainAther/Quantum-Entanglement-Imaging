@@ -158,3 +158,12 @@ framework retains one first-order mechanism.  This result should not yet be
 interpreted as real cable-failure behavior because cables and struts are still
 bilateral springs.  Tension-only cables and compression-only struts are the
 next major mechanics upgrade.
+
+## Rate-dependent basement attachment
+
+A first rate-dependent extension is available in
+`experiments/t4_rate_sweep.py`. The tensegrity members remain unilateral
+(tension-only cables and compression-only struts); rate dependence is assigned
+to the compliant basement/foundation attachment through a Kelvin-Voigt model.
+See `docs/rate_dependent_loading.md` for assumptions, usage, and interpretation
+limits.
