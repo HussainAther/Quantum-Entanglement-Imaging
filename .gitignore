@@ -25,3 +25,6 @@ experiments/**/critical_cables_report.csv
 
 # Meetings notes
 docs/*.txt
+
+# BlueQubit
+bluequebit_tests
