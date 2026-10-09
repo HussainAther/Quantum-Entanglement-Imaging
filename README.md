@@ -1,4 +1,4 @@
-# Quantum Entanglement Imaging / Computational Tensegrity Research
+# Quantum Entanglement Imaging / Computational Tensegrity Research 
 
 This repository preserves an exploratory research history spanning quantum-imaging prototypes, X-ray simulation experiments, and Richard Gordon-inspired tensegrity questions. The current scientifically developed component is the **computational tensegrity mechanics core** under `src/tensegrity/`.
 
